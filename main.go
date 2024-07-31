@@ -1,17 +1,32 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 
+	"github.com/Atviksord/BlogAggregator/internal/database"
 	"github.com/joho/godotenv"
+	_ "github.com/lib/pq"
 )
 
+type apiConfig struct {
+	DB *database.Queries
+}
+
 func main() {
+	// Load Database
+	dbURL := os.Getenv("DATABASE_URL")
+	db, err := sql.Open("postgres", dbURL)
+	if err != nil {
+		fmt.Printf("Error loading Postgres database")
+	}
+	dbQueries := database.New(db)
 	// Load environment variables
-	err := godotenv.Load()
+
+	err = godotenv.Load()
 	if err != nil {
 		fmt.Printf("Failed to load env variable %v", err)
 	}
