@@ -18,6 +18,9 @@ type createUserResponse struct {
 	UpdatedAt time.Time `json:"updated_at"`
 	Name      string    `json:"name"`
 }
+type Parameters struct {
+	Name string `json:"name"`
+}
 
 func ReadynessHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
@@ -29,21 +32,22 @@ func ErrorHandler(w http.ResponseWriter, r *http.Request) {
 
 	respondWithError(w, 500, map[string]string{"error": "Internal server Error"})
 }
-func (cfg *apiConfig) UserCreateHandler(w http.ResponseWriter, r *http.Request) {
+func UserCreateHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-type", "application/json")
-	var params struct {
-		Name string `json:"name"`
-	}
+
 	requestBody, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Unable to read request body", http.StatusBadRequest)
 		return
 	}
-
+	params := Parameters{}
 	err = json.Unmarshal(requestBody, &params)
 	if err != nil {
 		fmt.Errorf("Couldnt unmarshal r body into user struct %v", err)
 	}
+
+	apiConfig.userCreateHelper(params)
+
 	USER, err := cfg.DB.CreateUser(r.Context(), database.CreateUserParams{
 		ID:        uuid.New(),
 		CreatedAt: time.Now().UTC(),
@@ -74,5 +78,5 @@ func HandlerRegistry(mux *http.ServeMux) {
 	// TEST HANDLER
 	mux.HandleFunc("GET /v1/healthz", ReadynessHandler)
 	mux.HandleFunc("GET /v1/err", ErrorHandler)
-	mux.HandleFunc("POST /v1/users", config.UserCreateHandler)
+	mux.HandleFunc("POST /v1/users", UserCreateHandler)
 }
