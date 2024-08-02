@@ -23,12 +23,22 @@ func respondWithError(w http.ResponseWriter, code int, msg interface{}) {
 	respondWithJSON(w, code, msg)
 }
 
-func (cfg *apiConfig) userCreateHelper(params Parameters) {
+func (cfg *apiConfig) userCreateHelper(params Parameters, w http.ResponseWriter, r *http.Request) (Erro, createUserResponse) {
 	USER, err := cfg.DB.CreateUser(r.Context(), database.CreateUserParams{
 		ID:        uuid.New(),
 		CreatedAt: time.Now().UTC(),
 		UpdatedAt: time.Now().UTC(),
 		Name:      params.Name,
 	})
+	if err != nil {
+		return http.Error(w, "Failed to create user", http.StatusInternalServerError), createUserResponse{}
+
+	}
+	response := createUserResponse{
+		ID:        USER.ID,
+		CreatedAt: USER.CreatedAt,
+		UpdatedAt: USER.UpdatedAt,
+		Name:      USER.Name,
+	}
 
 }
