@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Atviksord/BlogAggregator/internal/database"
 	"github.com/google/uuid"
 )
 
@@ -32,7 +31,7 @@ func ErrorHandler(w http.ResponseWriter, r *http.Request) {
 
 	respondWithError(w, 500, map[string]string{"error": "Internal server Error"})
 }
-func UserCreateHandler(w http.ResponseWriter, r *http.Request) {
+func (cfg *apiConfig) UserCreateHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-type", "application/json")
 
 	requestBody, err := io.ReadAll(r.Body)
@@ -45,24 +44,11 @@ func UserCreateHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		fmt.Errorf("Couldnt unmarshal r body into user struct %v", err)
 	}
+	// Invoke helper function for creating user
 
-	apiConfig.userCreateHelper(params)
-
-	USER, err := cfg.DB.CreateUser(r.Context(), database.CreateUserParams{
-		ID:        uuid.New(),
-		CreatedAt: time.Now().UTC(),
-		UpdatedAt: time.Now().UTC(),
-		Name:      params.Name,
-	})
+	err, response := cfg.userCreateHelper(params, w, r)
 	if err != nil {
-		http.Error(w, "Failed to create user", http.StatusInternalServerError)
-		return
-	}
-	response := createUserResponse{
-		ID:        USER.ID,
-		CreatedAt: USER.CreatedAt,
-		UpdatedAt: USER.UpdatedAt,
-		Name:      USER.Name,
+		fmt.Printf("Failed to create user with helper function")
 	}
 
 	w.WriteHeader(http.StatusOK)
@@ -73,10 +59,10 @@ func UserCreateHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func HandlerRegistry(mux *http.ServeMux) {
+func (cfg *apiConfig) HandlerRegistry(mux *http.ServeMux) {
 	fmt.Println("handlers being registered..")
 	// TEST HANDLER
 	mux.HandleFunc("GET /v1/healthz", ReadynessHandler)
 	mux.HandleFunc("GET /v1/err", ErrorHandler)
-	mux.HandleFunc("POST /v1/users", UserCreateHandler)
+	mux.HandleFunc("POST /v1/users", cfg.UserCreateHandler)
 }

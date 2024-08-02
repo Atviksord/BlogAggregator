@@ -24,6 +24,10 @@ func main() {
 		fmt.Printf("Error loading Postgres database")
 	}
 	dbQueries := database.New(db)
+	cfg := &apiConfig{
+		DB: dbQueries,
+	}
+
 	// Load environment variables
 
 	err = godotenv.Load()
@@ -37,7 +41,7 @@ func main() {
 		Addr:    ":" + port,
 		Handler: mux,
 	}
-	HandlerRegistry(mux)
+	cfg.HandlerRegistry(mux)
 	log.Printf("Server is starting on port %s\n", port)
 	err = server.ListenAndServe()
 	if err != nil {

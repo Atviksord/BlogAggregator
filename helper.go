@@ -31,8 +31,8 @@ func (cfg *apiConfig) userCreateHelper(params Parameters, w http.ResponseWriter,
 		Name:      params.Name,
 	})
 	if err != nil {
-		return http.Error(w, "Failed to create user", http.StatusInternalServerError), createUserResponse{}
-
+		http.Error(w, "Failed to create user", http.StatusInternalServerError)
+		return err, createUserResponse{}
 	}
 	response := createUserResponse{
 		ID:        USER.ID,
@@ -40,5 +40,6 @@ func (cfg *apiConfig) userCreateHelper(params Parameters, w http.ResponseWriter,
 		UpdatedAt: USER.UpdatedAt,
 		Name:      USER.Name,
 	}
+	return nil, response
 
 }
