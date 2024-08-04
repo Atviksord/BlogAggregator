@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -16,6 +17,7 @@ type createUserResponse struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 	Name      string    `json:"name"`
+	ApiKey    string    `json:"api_key"`
 }
 type Parameters struct {
 	Name string `json:"name"`
@@ -61,9 +63,34 @@ func (cfg *apiConfig) UserCreateHandler(w http.ResponseWriter, r *http.Request) 
 
 }
 
+// API Authorization Key in Header
+func (cfg *apiConfig) UserGetHandler(w http.ResponseWriter, r *http.Request) {
+	requestHeader := r.Header.Get("Authorization")
+	if requestHeader == "" {
+		http.Error(w, "Missing Authorization Header", http.StatusUnauthorized)
+		return
+	}
+	parts := strings.Split(requestHeader, " ")
+	if len(parts) != 2 || parts[0] != "ApiKey" {
+		http.Error(w, "Invalid Authorization format", http.StatusUnauthorized)
+	}
+	apiKey := parts[1]
+
+	user, err := cfg.userGetHelper(apiKey, w, r)
+	if err != nil {
+		http.Error(w, "Failed to get user in helper", http.StatusUnauthorized)
+	}
+	err = json.NewEncoder(w).Encode(user)
+	if err != nil {
+		http.Error(w, "Failed to encode user into JSON", http.StatusUnauthorized)
+	}
+
+}
+
 func (cfg *apiConfig) HandlerRegistry(mux *http.ServeMux) {
 	fmt.Println("handlers being registered..")
 	mux.HandleFunc("GET /v1/healthz", ReadynessHandler)
 	mux.HandleFunc("GET /v1/err", ErrorHandler)
 	mux.HandleFunc("POST /v1/users", cfg.UserCreateHandler)
+	mux.HandleFunc("GET /v1/users")
 }

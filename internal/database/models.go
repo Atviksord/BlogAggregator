@@ -5,7 +5,6 @@
 package database
 
 import (
-	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
@@ -16,5 +15,5 @@ type User struct {
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	Name      string
-	Email     sql.NullString
+	ApiKey    string
 }

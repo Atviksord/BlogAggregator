@@ -46,3 +46,17 @@ func (cfg *apiConfig) userCreateHelper(params Parameters, w http.ResponseWriter,
 	return response, nil
 
 }
+func (cfg *apiConfig) userGetHelper(apiKey string, w http.ResponseWriter, r *http.Request) (createUserResponse, error) {
+	USER, err := cfg.DB.GetApi(r.Context(), apiKey)
+	if err != nil {
+		http.Error(w, "Error getting user by API key")
+	}
+	response := createUserResponse{
+		ID:        USER.ID,
+		CreatedAt: USER.CreatedAt,
+		UpdatedAt: USER.UpdatedAt,
+		Name:      USER.Name,
+		ApiKey:    USER.ApiKey,
+	}
+	return response, nil
+}
