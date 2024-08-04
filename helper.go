@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -23,7 +24,9 @@ func respondWithError(w http.ResponseWriter, code int, msg interface{}) {
 	respondWithJSON(w, code, msg)
 }
 
-func (cfg *apiConfig) userCreateHelper(params Parameters, w http.ResponseWriter, r *http.Request) (Erro, createUserResponse) {
+// Helps the Create User Handler with creation logic
+func (cfg *apiConfig) userCreateHelper(params Parameters, w http.ResponseWriter, r *http.Request) (createUserResponse, error) {
+	fmt.Printf("Inserting user %s", params.Name)
 	USER, err := cfg.DB.CreateUser(r.Context(), database.CreateUserParams{
 		ID:        uuid.New(),
 		CreatedAt: time.Now().UTC(),
@@ -32,7 +35,7 @@ func (cfg *apiConfig) userCreateHelper(params Parameters, w http.ResponseWriter,
 	})
 	if err != nil {
 		http.Error(w, "Failed to create user", http.StatusInternalServerError)
-		return err, createUserResponse{}
+		return createUserResponse{}, err
 	}
 	response := createUserResponse{
 		ID:        USER.ID,
@@ -40,6 +43,6 @@ func (cfg *apiConfig) userCreateHelper(params Parameters, w http.ResponseWriter,
 		UpdatedAt: USER.UpdatedAt,
 		Name:      USER.Name,
 	}
-	return nil, response
+	return response, nil
 
 }

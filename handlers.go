@@ -42,16 +42,18 @@ func (cfg *apiConfig) UserCreateHandler(w http.ResponseWriter, r *http.Request) 
 	params := Parameters{}
 	err = json.Unmarshal(requestBody, &params)
 	if err != nil {
-		fmt.Errorf("Couldnt unmarshal r body into user struct %v", err)
+		http.Error(w, "Unable to read request body", http.StatusBadRequest)
+		fmt.Printf("Couldnt unmarshal r body into user struct %v", err)
+		return
+
 	}
 	// Invoke helper function for creating user
 
-	err, response := cfg.userCreateHelper(params, w, r)
+	response, err := cfg.userCreateHelper(params, w, r)
 	if err != nil {
-		fmt.Printf("Failed to create user with helper function")
+		fmt.Printf("Failed to create user with helper function %v", err)
 	}
 
-	w.WriteHeader(http.StatusOK)
 	err = json.NewEncoder(w).Encode(response)
 	if err != nil {
 		http.Error(w, "Failed to write the response", http.StatusInternalServerError)
@@ -61,7 +63,6 @@ func (cfg *apiConfig) UserCreateHandler(w http.ResponseWriter, r *http.Request) 
 
 func (cfg *apiConfig) HandlerRegistry(mux *http.ServeMux) {
 	fmt.Println("handlers being registered..")
-	// TEST HANDLER
 	mux.HandleFunc("GET /v1/healthz", ReadynessHandler)
 	mux.HandleFunc("GET /v1/err", ErrorHandler)
 	mux.HandleFunc("POST /v1/users", cfg.UserCreateHandler)

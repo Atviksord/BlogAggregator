@@ -17,25 +17,42 @@ type apiConfig struct {
 }
 
 func main() {
-	// Load Database
+
+	// Load environment variables
+
+	err := godotenv.Load()
+	if err != nil {
+		fmt.Printf("Failed to load env variable %v", err)
+	}
 	dbURL := os.Getenv("DATABASE_URL")
+	if dbURL == "" {
+		log.Fatal("DATABASE_URL is not set in the environment variables")
+	}
+
+	// Attempt to connect to the database
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
-		fmt.Printf("Error loading Postgres database")
+		log.Fatalf("Error opening database: %v", err)
 	}
+
+	// Ping the database to confirm the connection
+	err = db.Ping()
+	if err != nil {
+		log.Fatalf("Error pinging database: %v", err)
+	}
+
+	// initialize database queries(SQL)
 	dbQueries := database.New(db)
 	cfg := &apiConfig{
 		DB: dbQueries,
 	}
 
-	// Load environment variables
-
-	err = godotenv.Load()
-	if err != nil {
-		fmt.Printf("Failed to load env variable %v", err)
-	}
-	port := os.Getenv("PORT")
 	// Create server and launch it
+	port := os.Getenv("PORT")
+	if port == "" {
+		log.Fatal("PORT is not set in the environment variables")
+	}
+
 	mux := http.NewServeMux()
 	server := &http.Server{
 		Addr:    ":" + port,
