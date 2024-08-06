@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/Atviksord/BlogAggregator/internal/database"
 	"io"
 	"net/http"
 	"strings"
@@ -23,6 +24,9 @@ type Parameters struct {
 	Name string `json:"name"`
 }
 
+// CUSTOM TYPE FOR HANDLERS THAT REQUIRE AUTH
+type authedHandler func(http.ResponseWriter, *http.Request, database.User)
+
 func ReadynessHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	respondWithJSON(w, http.StatusOK, map[string]string{"status": "ok"})
@@ -32,6 +36,10 @@ func ErrorHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-type", "application/json")
 
 	respondWithError(w, 500, map[string]string{"error": "Internal server Error"})
+}
+func (cfg *apiConfig) middlewareAuth(handler authedHandler) http.HandlerFunc {
+
+	///
 }
 func (cfg *apiConfig) UserCreateHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-type", "application/json")
@@ -92,5 +100,7 @@ func (cfg *apiConfig) HandlerRegistry(mux *http.ServeMux) {
 	mux.HandleFunc("GET /v1/healthz", ReadynessHandler)
 	mux.HandleFunc("GET /v1/err", ErrorHandler)
 	mux.HandleFunc("POST /v1/users", cfg.UserCreateHandler)
-	mux.HandleFunc("GET /v1/users")
+	mux.HandleFunc("GET /v1/users", cfg.UserGetHandler)
+	mux.HandleFunc("POST /v1/feeds")
+
 }

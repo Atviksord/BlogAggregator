@@ -49,7 +49,7 @@ func (cfg *apiConfig) userCreateHelper(params Parameters, w http.ResponseWriter,
 func (cfg *apiConfig) userGetHelper(apiKey string, w http.ResponseWriter, r *http.Request) (createUserResponse, error) {
 	USER, err := cfg.DB.GetApi(r.Context(), apiKey)
 	if err != nil {
-		http.Error(w, "Error getting user by API key")
+		http.Error(w, "Error getting user by API key", http.StatusUnauthorized)
 	}
 	response := createUserResponse{
 		ID:        USER.ID,
