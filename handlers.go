@@ -3,11 +3,11 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/Atviksord/BlogAggregator/internal/database"
 	"io"
 	"net/http"
-	"strings"
 	"time"
+
+	"github.com/Atviksord/BlogAggregator/internal/database"
 
 	"github.com/google/uuid"
 )
@@ -37,9 +37,29 @@ func ErrorHandler(w http.ResponseWriter, r *http.Request) {
 
 	respondWithError(w, 500, map[string]string{"error": "Internal server Error"})
 }
-func (cfg *apiConfig) middlewareAuth(handler authedHandler) http.HandlerFunc {
 
-	///
+// / DO CHECKS IF AUTHOR IS AUTHORIZED HERE, PROTECTED AUTHORIZED END POINT
+func (cfg *apiConfig) middlewareAuth(handler authedHandler) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		apiKey, err := cfg.extractAPIKey(r)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
+		user, err := cfg.userGetHelper(apiKey, r)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
+		// Pass control from AUTH middleware to main handler
+		handler(w, r, user)
+
+	}
+}
+
+// CREATE FEED
+func (cfg *apiConfig) FeedCreateHandler(w http.ResponseWriter, r *http.Request, user database.User) {
+
 }
 func (cfg *apiConfig) UserCreateHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-type", "application/json")
@@ -73,20 +93,16 @@ func (cfg *apiConfig) UserCreateHandler(w http.ResponseWriter, r *http.Request) 
 
 // API Authorization Key in Header
 func (cfg *apiConfig) UserGetHandler(w http.ResponseWriter, r *http.Request) {
-	requestHeader := r.Header.Get("Authorization")
-	if requestHeader == "" {
-		http.Error(w, "Missing Authorization Header", http.StatusUnauthorized)
+
+	apiKey, err := cfg.extractAPIKey(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
-	parts := strings.Split(requestHeader, " ")
-	if len(parts) != 2 || parts[0] != "ApiKey" {
-		http.Error(w, "Invalid Authorization format", http.StatusUnauthorized)
-	}
-	apiKey := parts[1]
 
-	user, err := cfg.userGetHelper(apiKey, w, r)
+	user, err := cfg.userGetHelper(apiKey, r)
 	if err != nil {
-		http.Error(w, "Failed to get user in helper", http.StatusUnauthorized)
+		http.Error(w, err.Error(), http.StatusUnauthorized)
 	}
 	err = json.NewEncoder(w).Encode(user)
 	if err != nil {
@@ -101,6 +117,6 @@ func (cfg *apiConfig) HandlerRegistry(mux *http.ServeMux) {
 	mux.HandleFunc("GET /v1/err", ErrorHandler)
 	mux.HandleFunc("POST /v1/users", cfg.UserCreateHandler)
 	mux.HandleFunc("GET /v1/users", cfg.UserGetHandler)
-	mux.HandleFunc("POST /v1/feeds")
+	mux.HandleFunc("POST /v1/feeds", cfg.middlewareAuth(cfg.FeedCreateHandler))
 
 }

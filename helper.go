@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/Atviksord/BlogAggregator/internal/database"
@@ -46,17 +47,24 @@ func (cfg *apiConfig) userCreateHelper(params Parameters, w http.ResponseWriter,
 	return response, nil
 
 }
-func (cfg *apiConfig) userGetHelper(apiKey string, w http.ResponseWriter, r *http.Request) (createUserResponse, error) {
+func (cfg *apiConfig) extractAPIKey(r *http.Request) (string, error) {
+	requestHeader := r.Header.Get("Authorization")
+	if requestHeader == "" {
+		return "", fmt.Errorf("missing Authorization Header")
+
+	}
+	parts := strings.Split(requestHeader, " ")
+	if len(parts) != 2 || parts[0] != "ApiKey" {
+		return "", fmt.Errorf("invalid Authorization format")
+	}
+	return parts[1], nil
+}
+
+func (cfg *apiConfig) userGetHelper(apiKey string, r *http.Request) (database.User, error) {
 	USER, err := cfg.DB.GetApi(r.Context(), apiKey)
 	if err != nil {
-		http.Error(w, "Error getting user by API key", http.StatusUnauthorized)
+		return database.User{}, fmt.Errorf("error getting user by API key In helper")
 	}
-	response := createUserResponse{
-		ID:        USER.ID,
-		CreatedAt: USER.CreatedAt,
-		UpdatedAt: USER.UpdatedAt,
-		Name:      USER.Name,
-		ApiKey:    USER.ApiKey,
-	}
-	return response, nil
+
+	return USER, nil
 }
