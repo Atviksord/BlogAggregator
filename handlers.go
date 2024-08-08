@@ -5,21 +5,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"time"
 
 	"github.com/Atviksord/BlogAggregator/internal/database"
-
-	"github.com/google/uuid"
 )
 
-// struct to create user
-type createUserResponse struct {
-	ID        uuid.UUID `json:"id"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-	Name      string    `json:"name"`
-	ApiKey    string    `json:"api_key"`
-}
 type Parameters struct {
 	Name string `json:"name"`
 }
@@ -59,7 +48,16 @@ func (cfg *apiConfig) middlewareAuth(handler authedHandler) http.HandlerFunc {
 
 // CREATE FEED
 func (cfg *apiConfig) FeedCreateHandler(w http.ResponseWriter, r *http.Request, user database.User) {
+	feed, err := cfg.userCreateFeedHelper(r, user)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 
+	err = json.NewEncoder(w).Encode(feed)
+
+	if err != nil {
+		http.Error(w, "Failed to encode feed into json", http.StatusInternalServerError)
+	}
 }
 func (cfg *apiConfig) UserCreateHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-type", "application/json")
@@ -79,9 +77,10 @@ func (cfg *apiConfig) UserCreateHandler(w http.ResponseWriter, r *http.Request) 
 	}
 	// Invoke helper function for creating user
 
-	response, err := cfg.userCreateHelper(params, w, r)
+	response, err := cfg.userCreateHelper(params, r)
 	if err != nil {
-		fmt.Printf("Failed to create user with helper function %v", err)
+		http.Error(w, "Failed to create user with helper function %v", http.StatusUnauthorized)
+
 	}
 
 	err = json.NewEncoder(w).Encode(response)
@@ -91,24 +90,29 @@ func (cfg *apiConfig) UserCreateHandler(w http.ResponseWriter, r *http.Request) 
 
 }
 
-// API Authorization Key in Header
-func (cfg *apiConfig) UserGetHandler(w http.ResponseWriter, r *http.Request) {
+func (cfg *apiConfig) UserGetHandler(w http.ResponseWriter, r *http.Request, user database.User) {
 
-	apiKey, err := cfg.extractAPIKey(r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
-		return
-	}
-
-	user, err := cfg.userGetHelper(apiKey, r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
-	}
-	err = json.NewEncoder(w).Encode(user)
+	err := json.NewEncoder(w).Encode(user)
 	if err != nil {
 		http.Error(w, "Failed to encode user into JSON", http.StatusUnauthorized)
 	}
 
+}
+func (cfg *apiConfig) feedGetHandler(w http.ResponseWriter, r *http.Request) {
+	allfeeds, err := cfg.DB.GetFeeds(r.Context())
+	if err != nil {
+		http.Error(w, "Failed to get feeds", http.StatusInternalServerError)
+	}
+	err = json.NewEncoder(w).Encode(allfeeds)
+	if err != nil {
+		http.Error(w, "Failed to turn feed struct into json", http.StatusInternalServerError)
+	}
+}
+func (cfg *apiConfig) feedFollowHandler(w http.ResponseWriter, r *http.Request, user database.User) {
+	feedFollow, err := cfg.feedFollowHandlerHelper(r, user)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
 func (cfg *apiConfig) HandlerRegistry(mux *http.ServeMux) {
@@ -116,7 +120,9 @@ func (cfg *apiConfig) HandlerRegistry(mux *http.ServeMux) {
 	mux.HandleFunc("GET /v1/healthz", ReadynessHandler)
 	mux.HandleFunc("GET /v1/err", ErrorHandler)
 	mux.HandleFunc("POST /v1/users", cfg.UserCreateHandler)
-	mux.HandleFunc("GET /v1/users", cfg.UserGetHandler)
+	mux.HandleFunc("GET /v1/users", cfg.middlewareAuth(cfg.UserGetHandler))
 	mux.HandleFunc("POST /v1/feeds", cfg.middlewareAuth(cfg.FeedCreateHandler))
+	mux.HandleFunc("GET /v1/feeds", cfg.feedGetHandler)
+	mux.HandleFunc("POST /v1/feed_follows", cfg.middlewareAuth(cfg.feedFollowHandler))
 
 }
