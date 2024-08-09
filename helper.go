@@ -99,9 +99,12 @@ func (cfg *apiConfig) feedFollowHandlerHelper(r *http.Request, user database.Use
 	}
 	feedParameters := FeedParams{}
 	requestBody, err := io.ReadAll(r.Body)
+	if err != nil {
+		return database.FeedsFollow{}, fmt.Errorf("unable to read Requestbody")
+	}
 	err = json.Unmarshal(requestBody, &feedParameters)
 	if err != nil {
-		return database.FeedsFollow{}, fmt.Errorf("Unable to read request body", http.StatusInternalServerError)
+		return database.FeedsFollow{}, fmt.Errorf("unable to read request body")
 
 	}
 
@@ -113,7 +116,7 @@ func (cfg *apiConfig) feedFollowHandlerHelper(r *http.Request, user database.Use
 		UpdatedAt: time.Now().UTC(),
 	})
 	if err != nil {
-		return database.FeedsFollow{}, fmt.Errorf("Unable to CreateFeedFollow in handler", http.StatusInternalServerError)
+		return database.FeedsFollow{}, fmt.Errorf("unable to CreateFeedFollow in handler")
 	}
 	return followFeeds, nil
 

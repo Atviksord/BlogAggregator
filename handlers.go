@@ -94,10 +94,12 @@ func (cfg *apiConfig) UserGetHandler(w http.ResponseWriter, r *http.Request, use
 
 	err := json.NewEncoder(w).Encode(user)
 	if err != nil {
-		http.Error(w, "Failed to encode user into JSON", http.StatusUnauthorized)
+		http.Error(w, "Failed to encode user into JSON", http.StatusInternalServerError)
 	}
 
 }
+
+// Get specific feed in detail
 func (cfg *apiConfig) feedGetHandler(w http.ResponseWriter, r *http.Request) {
 	allfeeds, err := cfg.DB.GetFeeds(r.Context())
 	if err != nil {
@@ -109,10 +111,28 @@ func (cfg *apiConfig) feedGetHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 func (cfg *apiConfig) feedFollowHandler(w http.ResponseWriter, r *http.Request, user database.User) {
-	feedFollow, err := cfg.feedFollowHandlerHelper(r, user)
+	_, err := cfg.feedFollowHandlerHelper(r, user)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
+}
+
+// get a list of all feeds followed by authenticated user
+func (cfg *apiConfig) getFeedFollowHandler(w http.ResponseWriter, r *http.Request, user database.User) {
+	followList, err := cfg.DB.GetFeedFollow(r.Context(), user.ID)
+	if err != nil {
+		http.Error(w, "Failed to get Follow Feeds from DB", http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	err = json.NewEncoder(w).Encode(followList)
+	if err != nil {
+		http.Error(w, "Failed to turn followfeed struct into json", http.StatusInternalServerError)
+	}
+
+}
+func (cfg *apiConfig) deleteFeedFollowHandler(w http.ResponseWriter, r *http.Request, user database.User) {
+
 }
 
 func (cfg *apiConfig) HandlerRegistry(mux *http.ServeMux) {
@@ -124,5 +144,7 @@ func (cfg *apiConfig) HandlerRegistry(mux *http.ServeMux) {
 	mux.HandleFunc("POST /v1/feeds", cfg.middlewareAuth(cfg.FeedCreateHandler))
 	mux.HandleFunc("GET /v1/feeds", cfg.feedGetHandler)
 	mux.HandleFunc("POST /v1/feed_follows", cfg.middlewareAuth(cfg.feedFollowHandler))
+	mux.HandleFunc("GET /v1/feed_follows", cfg.middlewareAuth(cfg.getFeedFollowHandler))
+	mux.HandleFunc("DELETE /v1/feed_follows/{feed_id}", cfg.middlewareAuth(cfg.deleteFeedFollowHandler))
 
 }
