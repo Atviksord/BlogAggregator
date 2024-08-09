@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/Atviksord/BlogAggregator/internal/database"
+	"github.com/google/uuid"
 )
 
 type Parameters struct {
@@ -51,12 +52,18 @@ func (cfg *apiConfig) FeedCreateHandler(w http.ResponseWriter, r *http.Request, 
 	feed, err := cfg.userCreateFeedHelper(r, user)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	err = cfg.autoFollowFeed(feed, user, r)
+	if err != nil {
+		http.Error(w, "Failed to auto-follow feed", http.StatusInternalServerError)
+		return
 	}
 
 	err = json.NewEncoder(w).Encode(feed)
-
 	if err != nil {
 		http.Error(w, "Failed to encode feed into json", http.StatusInternalServerError)
+		return
 	}
 }
 func (cfg *apiConfig) UserCreateHandler(w http.ResponseWriter, r *http.Request) {
@@ -132,7 +139,23 @@ func (cfg *apiConfig) getFeedFollowHandler(w http.ResponseWriter, r *http.Reques
 
 }
 func (cfg *apiConfig) deleteFeedFollowHandler(w http.ResponseWriter, r *http.Request, user database.User) {
+	feedId := r.PathValue("feed_id")
+	if feedId == "" {
+		http.Error(w, "No feed ID", http.StatusBadRequest)
 
+	}
+	trueFeedID, err := uuid.Parse(feedId)
+	if err != nil {
+		fmt.Printf("Failed to convert string to UUID %v", err)
+	}
+
+	err = cfg.DB.DeleteFeedFollow(r.Context(), database.DeleteFeedFollowParams{
+		FeedID: trueFeedID,
+		UserID: user.ID,
+	})
+	if err != nil {
+		http.Error(w, "Failed to DeleteFeed %v", http.StatusInternalServerError)
+	}
 }
 
 func (cfg *apiConfig) HandlerRegistry(mux *http.ServeMux) {

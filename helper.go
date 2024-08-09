@@ -121,3 +121,17 @@ func (cfg *apiConfig) feedFollowHandlerHelper(r *http.Request, user database.Use
 	return followFeeds, nil
 
 }
+func (cfg *apiConfig) autoFollowFeed(feed database.Feed, user database.User, r *http.Request) error {
+	_, err := cfg.DB.CreateFeedFollow(r.Context(), database.CreateFeedFollowParams{
+		ID:        uuid.New(),
+		FeedID:    feed.ID,
+		UserID:    user.ID,
+		CreatedAt: time.Now().UTC(),
+		UpdatedAt: time.Now().UTC(),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to autofollow feed: %v", err)
+	}
+	return nil
+
+}
