@@ -58,6 +58,7 @@ func main() {
 		Addr:    ":" + port,
 		Handler: mux,
 	}
+
 	cfg.HandlerRegistry(mux)
 	log.Printf("Server is starting on port %s\n", port)
 	err = server.ListenAndServe()

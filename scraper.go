@@ -38,12 +38,12 @@ type Rss struct {
 
 func (cfg *apiConfig) scraperMain() {
 	fmt.Println("test")
-	xml.Unmarshal()
+
 }
 
 // gets N feeds from DB
 func (cfg *apiConfig) nextFeedGetter(n int) {
-	fetchedFeed, err := cfg.DB.GetNextFeedsToFetch()
+	//fetchedFeed, err := cfg.DB.GetNextFeedsToFetch()
 
 }
 
@@ -57,6 +57,7 @@ func fetchDataFromFeed(urlz string) {
 	if err != nil {
 		fmt.Printf("Failed to get URL %v", err)
 	}
+
 	response := Rss{}
 	requestBody, err := io.ReadAll(r.Body)
 	if err != nil {
