@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 )
 
 type Rss struct {
@@ -65,5 +66,14 @@ func fetchDataFromFeed(urlz string) {
 	}
 
 	xml.Unmarshal(requestBody, &response)
+}
 
+func FeedFetchWorker(n int) {
+	for {
+		time.Tick(60)
+		// NextFeedGet get from DB
+		// Call feedMarker to mark as fetched
+		// Call fetchDataFromFeed to get feed data.
+		// Use sync.WaitGroup to spawn multiple goroutines
+	}
 }
