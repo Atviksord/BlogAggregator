@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sync"
 	"time"
 )
 
@@ -75,5 +76,21 @@ func FeedFetchWorker(n int) {
 		// Call feedMarker to mark as fetched
 		// Call fetchDataFromFeed to get feed data.
 		// Use sync.WaitGroup to spawn multiple goroutines
+
+		var wg sync.WaitGroup
+		// Placeholder for urls
+		urls := []string{"url1", "url2", "url3"}
+
+		for _, url := range urls {
+			wg.Add(1)
+			go func(u string) {
+				defer wg.Done()
+				// Simulate fetching data
+				fmt.Println("Fetching", u)
+			}(url)
+		}
+
+		wg.Wait()
+		fmt.Println("All goroutines complete.")
 	}
 }
