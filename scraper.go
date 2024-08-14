@@ -1,12 +1,15 @@
 package main
 
 import (
+	"context"
 	"encoding/xml"
 	"fmt"
 	"io"
 	"net/http"
 	"sync"
 	"time"
+
+	"github.com/Atviksord/BlogAggregator/internal/database"
 )
 
 type Rss struct {
@@ -44,13 +47,19 @@ func (cfg *apiConfig) scraperMain() {
 }
 
 // gets N feeds from DB
-func (cfg *apiConfig) nextFeedGetter(n int) {
-	//fetchedFeed, err := cfg.DB.GetNextFeedsToFetch()
+func (cfg *apiConfig) nextFeedGetter(n int32) ([]database.Feed, error) {
+	fetchedFeed, err := cfg.DB.GetNextFeedsToFetch(context.Background(), n)
+	if err != nil {
+		return fetchedFeed, fmt.Errorf("Failed to Get next feed from DB %v", err)
+	}
+
+	return fetchedFeed, nil
 
 }
 
 // marks if feeds been fetched
-func (cfg *apiConfig) feedMarker() {
+func (cfg *apiConfig) feedMarker(feed []database.Feed) error {
+	cfg.DB.MarkFeedFetched(context.Background())
 
 }
 
@@ -69,11 +78,17 @@ func fetchDataFromFeed(urlz string) {
 	xml.Unmarshal(requestBody, &response)
 }
 
-func FeedFetchWorker(n int) {
+func (cfg *apiConfig) FeedFetchWorker(n int32) {
 	for {
 		time.Tick(60)
 		// NextFeedGet get from DB
+		feed, err := cfg.nextFeedGetter(n)
+		if err != nil {
+			fmt.Errorf("Failed to get Feed from DB %v", err)
+		}
+
 		// Call feedMarker to mark as fetched
+		cfg.feedMarker(feed)
 		// Call fetchDataFromFeed to get feed data.
 		// Use sync.WaitGroup to spawn multiple goroutines
 
