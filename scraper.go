@@ -90,6 +90,7 @@ func (cfg *apiConfig) FeedFetchWorker(n int32) {
 		// Call feedMarker to mark as fetched
 		cfg.feedMarker(feed)
 		// Call fetchDataFromFeed to get feed data.
+		fetchDataFromFeed(feed[0].Url)
 		// Use sync.WaitGroup to spawn multiple goroutines
 
 		var wg sync.WaitGroup
