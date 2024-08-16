@@ -42,11 +42,6 @@ type Rss struct {
 	} `xml:"channel"`
 }
 
-func (cfg *apiConfig) scraperMain() {
-	fmt.Println("test")
-
-}
-
 // gets N feeds from DB
 func (cfg *apiConfig) nextFeedGetter(n int32) ([]database.Feed, error) {
 	fetchedFeed, err := cfg.DB.GetNextFeedsToFetch(context.Background(), n)
@@ -71,7 +66,7 @@ func (cfg *apiConfig) feedMarker(feed []database.Feed) error {
 			ID:            c.ID,
 		})
 		if err != nil {
-			return fmt.Errorf("Failed to mark feed with id %d as fetched: %w,", c.ID, err)
+			return fmt.Errorf("failed to mark feed with id %d as fetched: %w,", c.ID, err)
 		}
 
 	}
@@ -100,11 +95,14 @@ func (cfg *apiConfig) FeedFetchWorker(n int32) {
 		// NextFeedGet get from DB
 		feed, err := cfg.nextFeedGetter(n)
 		if err != nil {
-			fmt.Errorf("Failed to get Feed from DB %v", err)
+			fmt.Printf("Failed to get Feed from DB %v", err)
 		}
 
 		// Call feedMarker to mark as fetched
-		cfg.feedMarker(feed)
+		err = cfg.feedMarker(feed)
+		if err != nil {
+			fmt.Printf("Failed to mark feed as fetched %v", err)
+		}
 		// Call fetchDataFromFeed to get feed data.
 		fetchDataFromFeed(feed[0].Url)
 		// Use sync.WaitGroup to spawn multiple goroutines
