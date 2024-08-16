@@ -58,8 +58,10 @@ func main() {
 		Addr:    ":" + port,
 		Handler: mux,
 	}
-
+	// register endpoints
 	cfg.HandlerRegistry(mux)
+	// start webscraper worker go routine
+	go cfg.FeedFetchWorker(10)
 	log.Printf("Server is starting on port %s\n", port)
 	err = server.ListenAndServe()
 	if err != nil {

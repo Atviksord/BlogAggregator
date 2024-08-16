@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"encoding/xml"
 	"fmt"
 	"io"
@@ -59,7 +60,22 @@ func (cfg *apiConfig) nextFeedGetter(n int32) ([]database.Feed, error) {
 
 // marks if feeds been fetched
 func (cfg *apiConfig) feedMarker(feed []database.Feed) error {
-	cfg.DB.MarkFeedFetched(context.Background())
+
+	// Loop over the feed slice and edit timings
+	for _, c := range feed {
+		c.LastFetchedAt = sql.NullTime{Time: time.Now().UTC(), Valid: true}
+		c.UpdatedAt = time.Now().UTC()
+		err := cfg.DB.MarkFeedFetched(context.Background(), database.MarkFeedFetchedParams{
+			LastFetchedAt: c.LastFetchedAt,
+			UpdatedAt:     c.UpdatedAt,
+			ID:            c.ID,
+		})
+		if err != nil {
+			return fmt.Errorf("Failed to mark feed with id %d as fetched: %w,", c.ID, err)
+		}
+
+	}
+	return nil
 
 }
 
