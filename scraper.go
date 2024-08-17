@@ -46,7 +46,7 @@ type Rss struct {
 func (cfg *apiConfig) nextFeedGetter(n int32) ([]database.Feed, error) {
 	fetchedFeed, err := cfg.DB.GetNextFeedsToFetch(context.Background(), n)
 	if err != nil {
-		return fetchedFeed, fmt.Errorf("Failed to Get next feed from DB %v", err)
+		return fetchedFeed, fmt.Errorf("failed to Get next feed from DB %v", err)
 	}
 
 	return fetchedFeed, nil
@@ -74,24 +74,30 @@ func (cfg *apiConfig) feedMarker(feed []database.Feed) error {
 
 }
 
-func fetchDataFromFeed(urlz string) {
+func fetchDataFromFeed(urlz string) (Rss, error) {
 	r, err := http.Get(urlz)
 	if err != nil {
-		fmt.Printf("Failed to get URL %v", err)
+		return Rss{}, fmt.Errorf("failed to get URL %v", err)
+
 	}
+	defer r.Body.Close()
 
 	response := Rss{}
 	requestBody, err := io.ReadAll(r.Body)
 	if err != nil {
-		fmt.Printf("Failed to read requestbody %v", err)
+		return Rss{}, fmt.Errorf("failed to read requestbody %v", err)
 	}
 
-	xml.Unmarshal(requestBody, &response)
+	if err := xml.Unmarshal(requestBody, &response); err != nil {
+		return Rss{}, fmt.Errorf("failed to unmarshal XML: %v", err)
+	}
+	return response, nil
 }
 
 func (cfg *apiConfig) FeedFetchWorker(n int32) {
 	for {
-		time.Sleep(60 * time.Second)
+
+		time.Sleep(10 * time.Second)
 		// NextFeedGet get from DB
 		feed, err := cfg.nextFeedGetter(n)
 		if err != nil {
@@ -103,13 +109,18 @@ func (cfg *apiConfig) FeedFetchWorker(n int32) {
 		if err != nil {
 			fmt.Printf("Failed to mark feed as fetched %v", err)
 		}
+
 		var wg sync.WaitGroup
 		// Call fetchDataFromFeed to get feed data.
 		for i := range feed {
 			wg.Add(1)
 			go func(url string) {
 				defer wg.Done()
-				fetchDataFromFeed(feed[i].Url)
+				d, err := fetchDataFromFeed(feed[i].Url)
+				if err != nil {
+					fmt.Println("Error on fetching data from feed")
+				}
+				fmt.Println(d.Channel.Title)
 			}(feed[i].Url)
 
 		}
@@ -117,6 +128,7 @@ func (cfg *apiConfig) FeedFetchWorker(n int32) {
 		// Use sync.WaitGroup to spawn multiple goroutines
 
 		wg.Wait()
+		fmt.Println("-------")
 		fmt.Println("All goroutines complete.")
 	}
 }
