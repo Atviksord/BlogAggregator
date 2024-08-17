@@ -75,6 +75,7 @@ func (cfg *apiConfig) feedMarker(feed []database.Feed) error {
 }
 
 func fetchDataFromFeed(urlz string) {
+	defer wg.Done()
 	r, err := http.Get(urlz)
 	if err != nil {
 		fmt.Printf("Failed to get URL %v", err)
@@ -103,14 +104,19 @@ func (cfg *apiConfig) FeedFetchWorker(n int32) {
 		if err != nil {
 			fmt.Printf("Failed to mark feed as fetched %v", err)
 		}
+		var wg sync.WaitGroup
 		// Call fetchDataFromFeed to get feed data.
 		for i := range feed {
-			fetchDataFromFeed(feed[i].Url)
+			wg.Add(1)
+			go func(url string) {
+				defer wg.Done()
+				fetchDataFromFeed(feed[i].Url)
+			}(feed[i].Url)
+
 		}
 
 		// Use sync.WaitGroup to spawn multiple goroutines
 
-		var wg sync.WaitGroup
 		// Placeholder for urls
 		urls := []string{"url1", "url2", "url3"}
 
