@@ -91,7 +91,7 @@ func fetchDataFromFeed(urlz string) {
 
 func (cfg *apiConfig) FeedFetchWorker(n int32) {
 	for {
-		time.Tick(60)
+		time.Sleep(60 * time.Second)
 		// NextFeedGet get from DB
 		feed, err := cfg.nextFeedGetter(n)
 		if err != nil {
@@ -104,7 +104,10 @@ func (cfg *apiConfig) FeedFetchWorker(n int32) {
 			fmt.Printf("Failed to mark feed as fetched %v", err)
 		}
 		// Call fetchDataFromFeed to get feed data.
-		fetchDataFromFeed(feed[0].Url)
+		for i := range feed {
+			fetchDataFromFeed(feed[i].Url)
+		}
+
 		// Use sync.WaitGroup to spawn multiple goroutines
 
 		var wg sync.WaitGroup
