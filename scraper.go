@@ -97,7 +97,7 @@ func fetchDataFromFeed(urlz string) (Rss, error) {
 func (cfg *apiConfig) FeedFetchWorker(n int32) {
 	for {
 
-		time.Sleep(10 * time.Second)
+		time.Sleep(60 * time.Second)
 		// NextFeedGet get from DB
 		feed, err := cfg.nextFeedGetter(n)
 		if err != nil {
@@ -114,14 +114,16 @@ func (cfg *apiConfig) FeedFetchWorker(n int32) {
 		// Call fetchDataFromFeed to get feed data.
 		for i := range feed {
 			wg.Add(1)
-			go func(url string) {
+			go func(url string, idx int) {
 				defer wg.Done()
-				d, err := fetchDataFromFeed(feed[i].Url)
+				d, err := fetchDataFromFeed(url)
 				if err != nil {
-					fmt.Println("Error on fetching data from feed")
+					fmt.Printf("error on fetching data from feed %v\n", err)
 				}
-				fmt.Println(d.Channel.Title)
-			}(feed[i].Url)
+				for _, item := range d.Channel.Item {
+					fmt.Println(item.Title)
+				}
+			}(feed[i].Url, i)
 
 		}
 
