@@ -96,7 +96,6 @@ func fetchDataFromFeed(urlz string) (Rss, error) {
 
 func (cfg *apiConfig) FeedFetchWorker(n int32) {
 	for {
-
 		time.Sleep(60 * time.Second)
 		// NextFeedGet get from DB
 		feed, err := cfg.nextFeedGetter(n)

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 
 	"github.com/Atviksord/BlogAggregator/internal/database"
 	"github.com/google/uuid"
@@ -157,6 +158,29 @@ func (cfg *apiConfig) deleteFeedFollowHandler(w http.ResponseWriter, r *http.Req
 		http.Error(w, "Failed to DeleteFeed %v", http.StatusInternalServerError)
 	}
 }
+func (cfg *apiConfig) GetPostsByUser(w http.ResponseWriter, r *http.Request, user database.User) error {
+	limitStr := r.URL.Query().Get("limit")
+	limit := 5 //default if no query params
+
+	if limitStr != "" {
+		limitInt, err := strconv.Atoi(limitStr)
+		if err != nil {
+			http.Error(w, "Error converting limit string to int", http.StatusInternalServerError)
+			return err
+		}
+		posts, err := cfg.DB.GetPostByUser(r.Context(), database.GetPostByUserParams{
+			UserID: user.ID,
+			Limit:  int32(limitInt),
+		})
+		if err != nil {
+			http.Error(w, "Error getting post by user", http.StatusInternalServerError)
+		}
+
+		w.WriteHeader(200)
+		w.Write(posts)
+	}
+
+}
 
 func (cfg *apiConfig) HandlerRegistry(mux *http.ServeMux) {
 	fmt.Println("handlers being registered..")
@@ -169,5 +193,6 @@ func (cfg *apiConfig) HandlerRegistry(mux *http.ServeMux) {
 	mux.HandleFunc("POST /v1/feed_follows", cfg.middlewareAuth(cfg.feedFollowHandler))
 	mux.HandleFunc("GET /v1/feed_follows", cfg.middlewareAuth(cfg.getFeedFollowHandler))
 	mux.HandleFunc("DELETE /v1/feed_follows/{feed_id}", cfg.middlewareAuth(cfg.deleteFeedFollowHandler))
+	mux.HandleFunc("GET /v1/posts", cfg.middlewareAuth(cfg.GetPostsByUser))
 
 }
