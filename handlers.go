@@ -178,6 +178,7 @@ func (cfg *apiConfig) GetPostsByUser(w http.ResponseWriter, r *http.Request, use
 
 		w.WriteHeader(200)
 		w.Write(posts)
+		return nil
 	}
 
 }

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/Atviksord/BlogAggregator/internal/database"
+	"github.com/google/uuid"
 )
 
 type Rss struct {
@@ -102,27 +103,49 @@ func (cfg *apiConfig) FeedFetchWorker(n int32) {
 		if err != nil {
 			fmt.Printf("Failed to get Feed from DB %v", err)
 		}
+		fmt.Printf("Got feed")
 
 		// Call feedMarker to mark as fetched
 		err = cfg.feedMarker(feed)
 		if err != nil {
 			fmt.Printf("Failed to mark feed as fetched %v", err)
 		}
+		fmt.Printf("Feed marked")
 
 		var wg sync.WaitGroup
 		// Call fetchDataFromFeed to get feed data.
 		for i := range feed {
 			wg.Add(1)
-			go func(url string, idx int) {
+			go func(url string, idx int, feed database.Feed) {
 				defer wg.Done()
 				d, err := fetchDataFromFeed(url)
 				if err != nil {
 					fmt.Printf("error on fetching data from feed %v\n", err)
+					return
 				}
 				for _, item := range d.Channel.Item {
-					fmt.Println(item.Title)
+					timeStr := item.PubDate
+					publishedDate, err := time.Parse("Mon, 02 Jan 2006 15:04:05 -0700", timeStr)
+					if err != nil {
+						fmt.Printf("Error parsing published date into time.time %v", err)
+						return
+					}
+					err = cfg.DB.CreatePost(context.Background(), database.CreatePostParams{
+						ID:          uuid.New(),
+						CreatedAt:   time.Now().UTC(),
+						UpdatedAt:   time.Now().UTC(),
+						Title:       item.Title,
+						Url:         item.Link,
+						Description: item.Description,
+						PublishedAt: publishedDate,
+						FeedID:      feed.ID,
+					})
+					if err != nil {
+						fmt.Printf("Failed to create post %v", err)
+					}
+					fmt.Print("Post created")
 				}
-			}(feed[i].Url, i)
+			}(feed[i].Url, i, feed[i])
 
 		}
 
