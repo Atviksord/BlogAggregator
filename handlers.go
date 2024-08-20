@@ -158,29 +158,34 @@ func (cfg *apiConfig) deleteFeedFollowHandler(w http.ResponseWriter, r *http.Req
 		http.Error(w, "Failed to DeleteFeed %v", http.StatusInternalServerError)
 	}
 }
-func (cfg *apiConfig) GetPostsByUser(w http.ResponseWriter, r *http.Request, user database.User) error {
+func (cfg *apiConfig) GetPostsByUser(w http.ResponseWriter, r *http.Request, user database.User) {
+	w.Header().Set("Content-type", "application/json")
 	limitStr := r.URL.Query().Get("limit")
 	limit := 5 //default if no query params
-
+	var posts []UserPostResponseStruct
+	var err error
 	if limitStr != "" {
-		limitInt, err := strconv.Atoi(limitStr)
+		limitd, err := strconv.Atoi(limitStr)
 		if err != nil {
 			http.Error(w, "Error converting limit string to int", http.StatusInternalServerError)
-			return err
+			return
 		}
-		posts, err := cfg.DB.GetPostByUser(r.Context(), database.GetPostByUserParams{
-			UserID: user.ID,
-			Limit:  int32(limitInt),
-		})
-		if err != nil {
-			http.Error(w, "Error getting post by user", http.StatusInternalServerError)
-		}
+		limit = limitd
 
-		w.WriteHeader(200)
-		w.Write(posts)
-		return nil
 	}
+	posts, err = cfg.getPostsByUserHelper(r, w, user, limit)
+	if err != nil {
+		http.Error(w, "Failed to get Posts By User ", http.StatusInternalServerError)
+		return
 
+	}
+	d, err := json.Marshal(posts)
+	if err != nil {
+		http.Error(w, "Error marshalling posts into json", http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(200)
+	w.Write(d)
 }
 
 func (cfg *apiConfig) HandlerRegistry(mux *http.ServeMux) {

@@ -135,3 +135,35 @@ func (cfg *apiConfig) autoFollowFeed(feed database.Feed, user database.User, r *
 	return nil
 
 }
+
+type UserPostResponseStruct struct {
+	Description string `json:"description"`
+	PublishedAt string `json:"publishedat"`
+	Title       string `json:"title"`
+	Url         string `json:"url"`
+}
+
+func (cfg *apiConfig) getPostsByUserHelper(r *http.Request, w http.ResponseWriter, user database.User, limit int) ([]UserPostResponseStruct, error) {
+
+	var UserSlice []UserPostResponseStruct
+	posts, err := cfg.DB.GetPostByUser(r.Context(), database.GetPostByUserParams{
+		UserID: user.ID,
+		Limit:  int32(limit),
+	})
+	if err != nil {
+		http.Error(w, "Error getting post by user", http.StatusInternalServerError)
+		return []UserPostResponseStruct{}, err
+	}
+	for _, post := range posts {
+		var UserPost UserPostResponseStruct
+		UserPost.Description = post.Description
+		UserPost.PublishedAt = post.PublishedAt.Format(time.RFC3339)
+		UserPost.Title = post.Title
+		UserPost.Url = post.Url
+
+		UserSlice = append(UserSlice, UserPost)
+
+	}
+	return UserSlice, nil
+
+}
