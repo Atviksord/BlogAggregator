@@ -166,6 +166,10 @@ func (cfg *apiConfig) GetPostsByUser(w http.ResponseWriter, r *http.Request, use
 	var err error
 	if limitStr != "" {
 		limitd, err := strconv.Atoi(limitStr)
+		if limitd < 1 {
+			http.Error(w, "Less than 1 limit", http.StatusBadRequest)
+			return
+		}
 		if err != nil {
 			http.Error(w, "Error converting limit string to int", http.StatusInternalServerError)
 			return
