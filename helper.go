@@ -55,13 +55,11 @@ func (cfg *apiConfig) extractAPIKey(r *http.Request) (string, error) {
 	}
 	return parts[1], nil
 }
-
 func (cfg *apiConfig) userGetHelper(apiKey string, r *http.Request) (database.User, error) {
 	USER, err := cfg.DB.GetApi(r.Context(), apiKey)
 	if err != nil {
 		return database.User{}, fmt.Errorf("error getting user by API key In helper")
 	}
-
 	return USER, nil
 }
 func (cfg *apiConfig) userCreateFeedHelper(r *http.Request, user database.User) (database.Feed, error) {
@@ -160,9 +158,7 @@ func (cfg *apiConfig) getPostsByUserHelper(r *http.Request, w http.ResponseWrite
 		UserPost.PublishedAt = post.PublishedAt.Format(time.RFC3339)
 		UserPost.Title = post.Title
 		UserPost.Url = post.Url
-
 		UserSlice = append(UserSlice, UserPost)
-
 	}
 	return UserSlice, nil
 
